@@ -9,6 +9,219 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="AI Chatbot", page_icon=":robot_face:", layout="wide")
 
+# Custom CSS för mörkblå bakgrund och snyggare typsnitt
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    /* Huvudbakgrund och typsnitt */
+    .stApp {
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    /* Textfärger */
+    .stApp, .stMarkdown, p, label, span {
+        color: #E8F1F5 !important;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.5px;
+    }
+    
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a2a3a 0%, #0f1f2e 100%);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    [data-testid="stSidebar"] * {
+        color: #E8F1F5 !important;
+    }
+    
+    /* Info boxar och alerts */
+    .stAlert {
+        background-color: rgba(30, 50, 70, 0.8) !important;
+        color: #E8F1F5 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 8px;
+    }
+    
+    /* Metrics styling */
+    [data-testid="stMetricValue"] {
+        color: #4FC3F7 !important;
+        font-size: 2rem !important;
+        font-weight: 600 !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #B0BEC5 !important;
+        font-weight: 500 !important;
+    }
+    
+    /* File uploader */
+    [data-testid="stFileUploader"] {
+        background-color: rgba(30, 50, 70, 0.5);
+        border-radius: 10px;
+        padding: 20px;
+        border: 2px dashed rgba(79, 195, 247, 0.3);
+    }
+    
+    [data-testid="stFileUploader"] > label {
+        color: #FFFFFF !important;
+    }
+    
+    [data-testid="stFileUploader"] button {
+        color: #000000 !important;
+        background-color: #FFFFFF !important;
+        font-weight: 500 !important;
+    }
+    
+    [data-testid="stFileUploader"] button:hover {
+        background-color: #F0F0F0 !important;
+    }
+    
+    [data-testid="stFileUploader"] small {
+        color: #000000 !important;
+    }
+    
+    [data-testid="stFileUploader"] span {
+        color: #000000 !important;
+    }
+    
+    [data-testid="stFileUploader"] p {
+        color: #000000 !important;
+    }
+    
+    /* Buttons */
+    .stButton>button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Select box och input */
+    .stSelectbox, .stTextInput {
+        color: #E8F1F5 !important;
+    }
+    
+    input, select, textarea {
+        background-color: rgba(30, 50, 70, 0.6) !important;
+        color: #E8F1F5 !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 6px !important;
+    }
+    
+    /* Dataframe styling */
+    .stDataFrame {
+        background-color: rgba(30, 50, 70, 0.4);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background-color: rgba(30, 50, 70, 0.6) !important;
+        border-radius: 8px !important;
+        color: #E8F1F5 !important;
+    }
+    
+    /* Success/Error messages */
+    .stSuccess {
+        background-color: rgba(46, 125, 50, 0.3) !important;
+        color: #81C784 !important;
+        border-left: 4px solid #4CAF50 !important;
+    }
+    
+    .stError {
+        background-color: rgba(198, 40, 40, 0.3) !important;
+        color: #EF5350 !important;
+        border-left: 4px solid #F44336 !important;
+    }
+    
+    .stInfo {
+        background-color: rgba(2, 136, 209, 0.3) !important;
+        color: #4FC3F7 !important;
+        border-left: 4px solid #03A9F4 !important;
+    }
+    
+    /* Spinner */
+    .stSpinner > div {
+        border-top-color: #4FC3F7 !important;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: rgba(30, 50, 70, 0.4);
+        border-radius: 8px;
+        padding: 5px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: #B0BEC5 !important;
+        font-weight: 500;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(79, 195, 247, 0.2) !important;
+        color: #4FC3F7 !important;
+        border-radius: 6px;
+    }
+    
+    /* Plotly charts i dark mode */
+    .js-plotly-plot {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    /* Checkboxes */
+    .stCheckbox {
+        color: #E8F1F5 !important;
+    }
+    
+    /* Markdown content */
+    .stMarkdown a {
+        color: #4FC3F7 !important;
+        text-decoration: none;
+    }
+    
+    .stMarkdown a:hover {
+        color: #81D4FA !important;
+        text-decoration: underline;
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: rgba(15, 32, 39, 0.5);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: rgba(79, 195, 247, 0.5);
+        border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(79, 195, 247, 0.7);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 @st.cache_resource
 def get_openai_client():
