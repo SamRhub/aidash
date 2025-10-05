@@ -7,6 +7,25 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
+# Hjälpfunktion för att konvertera pandas-objekt till JSON-kompatibla format
+def safe_to_dict(obj):
+    """Konverterar pandas-objekt till dict med JSON-serialiserbara värden"""
+    if isinstance(obj, pd.Series):
+        obj = obj.astype(object)
+        # Konvertera Timestamps till strängar
+        obj = obj.apply(lambda x: str(x) if isinstance(x, pd.Timestamp) else x)
+        return obj.to_dict()
+    elif isinstance(obj, pd.DataFrame):
+        df_copy = obj.copy()
+        for col in df_copy.columns:
+            if df_copy[col].dtype == 'datetime64[ns]' or isinstance(df_copy[col].iloc[0] if len(df_copy) > 0 else None, pd.Timestamp):
+                df_copy[col] = df_copy[col].astype(str)
+        return df_copy.to_dict()
+    elif isinstance(obj, dict):
+        return {k: (str(v) if isinstance(v, pd.Timestamp) else v) for k, v in obj.items()}
+    return obj
+
+
 st.set_page_config(page_title="AI Chatbot", page_icon=":robot_face:", layout="wide")
 
 # Custom CSS för mörkblå bakgrund och snyggare typsnitt
@@ -269,18 +288,13 @@ def get_ai_insights(df, client):
     if not client:
         return "API-nyckel krävs för AI-analys"
 
-    # Konvertera Timestamp-objekt till strängar för JSON-serialisering
-    df_sample = df.head(3).copy()
-    for col in df_sample.select_dtypes(include=['datetime64', 'datetime']).columns:
-        df_sample[col] = df_sample[col].astype(str)
-    
     summary = {
     "columns": df.columns.tolist(),
     "shape": df.shape,
     "dtype": df.dtypes.astype(str).to_dict(),
-    "missing_summary": df.describe().to_dict() if len(df.select_dtypes(include=['number']).columns) > 0 else {},
-    "missing_values": df.isnull().sum().to_dict(),
-    "sample_data": df_sample.to_dict()
+    "missing_summary": safe_to_dict(df.describe()) if len(df.select_dtypes(include=['number']).columns) > 0 else {},
+    "missing_values": safe_to_dict(df.isnull().sum()),
+    "sample_data": safe_to_dict(df.head(3))
     }
 
     prompt = f"""Du är en dataanalytiker. Analysera följande dataset och ge insikter:
@@ -294,8 +308,8 @@ Ge en kort övergripande analys (max 150 ord) på svenska med:
 - Potentiella problem (t.ex. saknade värden, outliers)
 - Viktigaste insikterna
 
-
-Svara på svenska, var koncis och informativ."""
+VIKTIGT: Använd enkelt, vardagligt språk som alla kan förstå. Undvik tekniska termer och fackuttryck.
+Skriv kort och tydligt."""
 
     try:
         response = client.chat.completions.create(
@@ -314,7 +328,7 @@ def get_chart_insights(df, chart_type, column_info, client):
 
     if chart_type == "histogram":
         col = column_info
-        stats = df[col].describe().to_dict()
+        stats = safe_to_dict(df[col].describe())
         prompt = f"""Analysera histogrammet för kolumnen {col} och ge insikter:
 Statistik: {stats}
 Saknade värden: {df[col].isnull().sum()}
@@ -322,11 +336,13 @@ Saknade värden: {df[col].isnull().sum()}
 Ge en kort analys (max 100 ord) på svenska om:
 - Fördelningens form
 - Viktiga observationer
-- Potentiella insikter"""
+- Potentiella insikter
+
+Använd enkelt språk som alla förstår."""
     
     elif chart_type == "box":
         col = column_info
-        stats = df[col].describe().to_dict()
+        stats = safe_to_dict(df[col].describe())
         q1 = df[col].quantile(0.25)
         q3 = df[col].quantile(0.75)
         iqr = q3 - q1
@@ -338,19 +354,23 @@ Outliers: {outliers}
 Ge en kort analys (max 100 ord) på svenska om:
 - Spridning och median
 - Outliers
-- Datakvalitet"""
+- Datakvalitet
+
+Använd enkelt språk som alla förstår."""
     
     elif chart_type == "correlation":
         corr_matrix = df[df.select_dtypes(include=['number']).columns].corr()
         top_corr = corr_matrix.abs().unstack().sort_values(ascending=False)
         top_corr = top_corr[top_corr < 1].head(5)
         prompt = f"""Analysera korrelationsmatrisen:
-Starkaste korrelationer: {top_corr.to_dict()}
+Starkaste korrelationer: {safe_to_dict(top_corr)}
 
 Ge en kort analys (max 100 ord) på svenska om:
 - Viktigaste sambanden
 - Vad korrelationerna indikerar
-- Rekommendationer"""
+- Rekommendationer
+
+Använd enkelt språk som alla förstår."""
     
     elif chart_type == "scatter":
         x_col, y_col = column_info
@@ -361,19 +381,23 @@ Korrelation: {corr:.3f}
 Ge en kort analys (max 100 ord) på svenska om:
 - Sambandets styrka och riktning
 - Mönster i datan
-- Praktiska implikationer"""
+- Praktiska implikationer
+
+Använd enkelt språk som alla förstår."""
     
     elif chart_type == "bar":
         col = column_info
         value_counts = df[col].value_counts().head(10)
         prompt = f"""Analysera stapeldiagram för '{col}':
-Fördelning: {value_counts.to_dict()}
+Fördelning: {safe_to_dict(value_counts)}
 Totalt unika värden: {df[col].nunique()}
 
 Ge en kort analys (max 100 ord) på svenska om:
 - Dominerande kategorier
 - Fördelningens balans
-- Viktiga observationer"""
+- Viktiga observationer
+
+Använd enkelt språk som alla förstår."""
 
     else:
         return "Ogiltligt diagramtyp"
