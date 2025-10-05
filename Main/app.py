@@ -269,13 +269,18 @@ def get_ai_insights(df, client):
     if not client:
         return "API-nyckel krävs för AI-analys"
 
+    # Konvertera Timestamp-objekt till strängar för JSON-serialisering
+    df_sample = df.head(3).copy()
+    for col in df_sample.select_dtypes(include=['datetime64', 'datetime']).columns:
+        df_sample[col] = df_sample[col].astype(str)
+    
     summary = {
     "columns": df.columns.tolist(),
     "shape": df.shape,
     "dtype": df.dtypes.astype(str).to_dict(),
     "missing_summary": df.describe().to_dict() if len(df.select_dtypes(include=['number']).columns) > 0 else {},
     "missing_values": df.isnull().sum().to_dict(),
-    "sample_data": df.head(3).to_dict()
+    "sample_data": df_sample.to_dict()
     }
 
     prompt = f"""Du är en dataanalytiker. Analysera följande dataset och ge insikter:
