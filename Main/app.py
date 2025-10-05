@@ -10,19 +10,38 @@ import plotly.graph_objects as go
 # Hjälpfunktion för att konvertera pandas-objekt till JSON-kompatibla format
 def safe_to_dict(obj):
     """Konverterar pandas-objekt till dict med JSON-serialiserbara värden"""
-    if isinstance(obj, pd.Series):
-        obj = obj.astype(object)
-        # Konvertera Timestamps till strängar
-        obj = obj.apply(lambda x: str(x) if isinstance(x, pd.Timestamp) else x)
-        return obj.to_dict()
+    if isinstance(obj, pd.Timestamp):
+        return str(obj)
+    elif isinstance(obj, pd.Series):
+        # Konvertera index om det innehåller Timestamps
+        index = obj.index.tolist()
+        index = [str(i) if isinstance(i, pd.Timestamp) else i for i in index]
+        # Konvertera värden
+        values = obj.values.tolist()
+        values = [str(v) if isinstance(v, pd.Timestamp) else v for v in values]
+        return dict(zip(index, values))
     elif isinstance(obj, pd.DataFrame):
         df_copy = obj.copy()
+        # Konvertera index om det innehåller Timestamps
+        if isinstance(df_copy.index, pd.DatetimeIndex):
+            df_copy.index = df_copy.index.astype(str)
+        # Konvertera alla kolumner
         for col in df_copy.columns:
-            if df_copy[col].dtype == 'datetime64[ns]' or isinstance(df_copy[col].iloc[0] if len(df_copy) > 0 else None, pd.Timestamp):
+            if df_copy[col].dtype == 'datetime64[ns]':
                 df_copy[col] = df_copy[col].astype(str)
+            else:
+                # Konvertera individuella Timestamp-värden
+                df_copy[col] = df_copy[col].apply(lambda x: str(x) if isinstance(x, pd.Timestamp) else x)
         return df_copy.to_dict()
     elif isinstance(obj, dict):
-        return {k: (str(v) if isinstance(v, pd.Timestamp) else v) for k, v in obj.items()}
+        result = {}
+        for k, v in obj.items():
+            key = str(k) if isinstance(k, pd.Timestamp) else k
+            if isinstance(v, (pd.Timestamp, pd.Series, pd.DataFrame, dict)):
+                result[key] = safe_to_dict(v)
+            else:
+                result[key] = v
+        return result
     return obj
 
 
