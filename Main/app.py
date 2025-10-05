@@ -279,7 +279,7 @@ def get_api_key():
 col1, col2 = st.columns([4, 1])
 with col1:
     st.title("AI Dashboard")
-    st.markdown("Ladda upp din data för att få hjälp med att analysera den.")
+    st.markdown("Ladda upp din fil så hjälper AI dig förstå datan.")
 with col2:
     st.write("")  # Spacing
     if st.button("🔄 Rensa Cache", help="Rensar API-nyckel cache"):
@@ -316,19 +316,18 @@ def get_ai_insights(df, client):
     "sample_data": safe_to_dict(df.head(3))
     }
 
-    prompt = f"""Du är en dataanalytiker. Analysera följande dataset och ge insikter:
+    prompt = f"""Du hjälper till att förstå data. Titta på denna data och berätta enkelt:
 
-Dataset-information:
+Data:
 {json.dumps(summary, indent=2)}
 
-Ge en kort övergripande analys (max 150 ord) på svenska med:
-- Vad datasetet innehåller
-- Viktiga mönster och trender
-- Potentiella problem (t.ex. saknade värden, outliers)
-- Viktigaste insikterna
+Förklara kort (max 150 ord) på enkel svenska:
+- Vad finns i datan
+- Vad ser du för mönster
+- Finns det problem (t.ex. saknad data)
+- Vad är viktigast att veta
 
-VIKTIGT: Använd enkelt, vardagligt språk som alla kan förstå. Undvik tekniska termer och fackuttryck.
-Skriv kort och tydligt."""
+Skriv som om du pratar med en vän. Inga svåra ord!"""
 
     try:
         response = client.chat.completions.create(
@@ -348,16 +347,16 @@ def get_chart_insights(df, chart_type, column_info, client):
     if chart_type == "histogram":
         col = column_info
         stats = safe_to_dict(df[col].describe())
-        prompt = f"""Analysera histogrammet för kolumnen {col} och ge insikter:
-Statistik: {stats}
-Saknade värden: {df[col].isnull().sum()}
+        prompt = f"""Titta på diagrammet för {col}:
+Siffror: {stats}
+Data som saknas: {df[col].isnull().sum()}
 
-Ge en kort analys (max 100 ord) på svenska om:
-- Fördelningens form
-- Viktiga observationer
-- Potentiella insikter
+Berätta kort (max 100 ord):
+- Hur ser fördelningen ut
+- Vad ser du
+- Vad betyder det
 
-Använd enkelt språk som alla förstår."""
+Förklara enkelt!"""
     
     elif chart_type == "box":
         col = column_info
@@ -366,57 +365,57 @@ Använd enkelt språk som alla förstår."""
         q3 = df[col].quantile(0.75)
         iqr = q3 - q1
         outliers = len(df[(df[col] < q1 - 1.5*iqr) | (df[col] > q3 + 1.5*iqr)])
-        prompt = f"""Analysera box plot för '{col}':
-Statistik: {stats}
-Outliers: {outliers}
+        prompt = f"""Titta på box plot för '{col}':
+Siffror: {stats}
+Avvikande värden: {outliers}
 
-Ge en kort analys (max 100 ord) på svenska om:
-- Spridning och median
-- Outliers
-- Datakvalitet
+Berätta kort (max 100 ord):
+- Hur spridda är värdena
+- Finns det konstiga värden
+- Hur bra är datan
 
-Använd enkelt språk som alla förstår."""
+Förklara enkelt!"""
     
     elif chart_type == "correlation":
         corr_matrix = df[df.select_dtypes(include=['number']).columns].corr()
         top_corr = corr_matrix.abs().unstack().sort_values(ascending=False)
         top_corr = top_corr[top_corr < 1].head(5)
-        prompt = f"""Analysera korrelationsmatrisen:
-Starkaste korrelationer: {safe_to_dict(top_corr)}
+        prompt = f"""Titta på hur saker hänger ihop:
+Starkaste sambanden: {safe_to_dict(top_corr)}
 
-Ge en kort analys (max 100 ord) på svenska om:
-- Viktigaste sambanden
-- Vad korrelationerna indikerar
-- Rekommendationer
+Berätta kort (max 100 ord):
+- Vilka saker påverkar varandra mest
+- Vad betyder det
+- Vad bör man tänka på
 
-Använd enkelt språk som alla förstår."""
+Förklara enkelt!"""
     
     elif chart_type == "scatter":
         x_col, y_col = column_info
         corr = df[x_col].corr(df[y_col])
-        prompt = f"""Analysera scatter plot mellan '{x_col}' och '{y_col}':
-Korrelation: {corr:.3f}
+        prompt = f"""Titta på sambandet mellan '{x_col}' och '{y_col}':
+Samband: {corr:.3f}
 
-Ge en kort analys (max 100 ord) på svenska om:
-- Sambandets styrka och riktning
-- Mönster i datan
-- Praktiska implikationer
+Berätta kort (max 100 ord):
+- Hur starkt hänger de ihop
+- Vilka mönster ser du
+- Vad betyder det i praktiken
 
-Använd enkelt språk som alla förstår."""
+Förklara enkelt!"""
     
     elif chart_type == "bar":
         col = column_info
         value_counts = df[col].value_counts().head(10)
-        prompt = f"""Analysera stapeldiagram för '{col}':
+        prompt = f"""Titta på stapeldiagrammet för '{col}':
 Fördelning: {safe_to_dict(value_counts)}
-Totalt unika värden: {df[col].nunique()}
+Antal olika värden: {df[col].nunique()}
 
-Ge en kort analys (max 100 ord) på svenska om:
-- Dominerande kategorier
-- Fördelningens balans
-- Viktiga observationer
+Berätta kort (max 100 ord):
+- Vilka är vanligast
+- Är det jämnt fördelat
+- Vad ser du
 
-Använd enkelt språk som alla förstår."""
+Förklara enkelt!"""
 
     else:
         return "Ogiltligt diagramtyp"
@@ -480,8 +479,8 @@ if uploaded_file is not None:
 
         if numeric_cols:
             # Histogram
-            st.markdown("### 📊 Histogram - Fördelningar")
-            col_hist = st.selectbox("Välj numerisk kolumn för histogram", numeric_cols, key='hist')
+            st.markdown("### 📊 Hur är värdena fördelade?")
+            col_hist = st.selectbox("Välj kolumn med siffror", numeric_cols, key='hist')
             
             viz_col, insight_col = st.columns([2, 1])
             with viz_col:
@@ -502,8 +501,8 @@ if uploaded_file is not None:
             st.markdown("---")
             
             # Box Plot
-            st.markdown("### 📦 Box Plot - Spridning och Outliers")
-            col_box = st.selectbox("Välj numerisk kolumn för box plot", numeric_cols, key='box')
+            st.markdown("### 📦 Finns det konstiga värden?")
+            col_box = st.selectbox("Välj kolumn med siffror", numeric_cols, key='box')
             
             viz_col, insight_col = st.columns([2, 1])
             with viz_col:
@@ -524,7 +523,7 @@ if uploaded_file is not None:
             st.markdown("---")
 
             if len(numeric_cols) > 1:
-                st.markdown("### Korrelationsmatris")
+                st.markdown("### 🔗 Vad hänger ihop?")
 
                 viz_col, insight_col = st.columns([2, 1])
                 with viz_col:
@@ -550,13 +549,13 @@ if uploaded_file is not None:
                 st.markdown("---")
 
             if len(numeric_cols) >= 2:
-                st.markdown("### 🎯 Scatter Plot - Sambandsanalys")
+                st.markdown("### 🎯 Hur påverkar de varandra?")
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    x_col = st.selectbox("Välj X-axel", numeric_cols, key='scatter_x')
+                    x_col = st.selectbox("Välj första kolumnen", numeric_cols, key='scatter_x')
                 with col2:
-                    y_col = st.selectbox("Välj Y-axel", [c for c in numeric_cols if c != x_col], key='scatter_y')
+                    y_col = st.selectbox("Välj andra kolumnen", [c for c in numeric_cols if c != x_col], key='scatter_y')
                 
                 color_col = None
                 if categorical_cols:
@@ -584,8 +583,8 @@ if uploaded_file is not None:
         
         # Kategorisk analys
         if categorical_cols:
-            st.markdown("### 🏷️ Kategorisk Analys - Fördelningar")
-            cat_col = st.selectbox("Välj kategorisk kolumn", categorical_cols)
+            st.markdown("### 🏷️ Vilka grupper finns?")
+            cat_col = st.selectbox("Välj kolumn med kategorier", categorical_cols)
             
             viz_col, insight_col = st.columns([2, 1])
             
@@ -616,20 +615,20 @@ if uploaded_file is not None:
 else: 
     st.info("Ladda upp en fil för att börja analysera data")
 
-    with st.expander("Förklaring av AI-analys"):
+    with st.expander("Hur fungerar det?"):
         st.markdown("""
-        **AI-Driven Dashboard med OpenAI:**
+        **Så här använder du AI Dashboard:**
         
-        1. **Ange API-nyckel** - Lägg till din OpenAI API-nyckel i sidomenyn
-        2. **Ladda upp fil** - CSV, XLSX eller XLS format
-        3. **Automatisk analys** - Få övergripande AI-insikter om datan
-        4. **Visualiseringar med AI** - Varje diagram har AI-analys till höger
-        5. **Interaktiv utforskning** - Välj olika kolumner för analys
+        1. **API-nyckel** - Lägg till din OpenAI API-nyckel på sidan
+        2. **Ladda upp fil** - Välj en CSV eller Excel-fil
+        3. **AI analyserar** - AI tittar på din data automatiskt
+        4. **Se diagram** - Varje diagram får sin egen AI-förklaring
+        5. **Välj vad du vill se** - Testa olika kolumner
         
-        **Layout:**
-        - Diagram till vänster (70%)
-        - AI-analys till höger (30%)
-        - AI ger specifika insikter för varje visualisering
+        **Så ser det ut:**
+        - Diagram på vänster sida
+        - AI-förklaring på höger sida
+        - AI berättar vad varje diagram betyder
         """)
 
 
