@@ -10,6 +10,8 @@ ENV/
 
 # Streamlit
 .streamlit/secrets.toml
+Main/.streamlit/secrets.toml
+**/secrets.toml
 
 # IDE
 .vscode/

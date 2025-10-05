@@ -224,18 +224,32 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 @st.cache_resource
-def get_openai_client():
+def get_openai_client(_api_key):
     try:
-        api_key = st.secrets["OPENAI_API_KEY"]
-        return OpenAI(api_key=api_key)
+        return OpenAI(api_key=_api_key)
+    except:
+        return None
+
+def get_api_key():
+    try:
+        return st.secrets["OPENAI_API_KEY"]
     except:
         return None
 
 
-st.title("AI Dashboard")
-st.markdown("Ladda upp din data för att få hjälp med att analysera den.")
+# Header med cache-clear knapp
+col1, col2 = st.columns([4, 1])
+with col1:
+    st.title("AI Dashboard")
+    st.markdown("Ladda upp din data för att få hjälp med att analysera den.")
+with col2:
+    st.write("")  # Spacing
+    if st.button("🔄 Rensa Cache", help="Rensar API-nyckel cache"):
+        st.cache_resource.clear()
+        st.rerun()
 
-client = get_openai_client()
+api_key = get_api_key()
+client = get_openai_client(api_key) if api_key else None
 
 with st.sidebar:
     st.header("OpenAI API Key")
